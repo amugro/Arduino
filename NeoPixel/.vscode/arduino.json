@@ -1,6 +1,6 @@
 {
-    "board": "arduino:avr:uno",
+    "port": "COM7",
     "output": ".arduino/output",
     "sketch": "Sensorkarusell/Sensorkarusell.ino",
-    "programmer": "avrisp"
+    "board": "arduino:avr:uno"
 }
