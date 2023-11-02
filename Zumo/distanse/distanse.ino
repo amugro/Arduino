@@ -1,6 +1,5 @@
-# 1 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\distanse\\distanse.ino"
-# 2 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\distanse\\distanse.ino" 2
-# 3 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\distanse\\distanse.ino" 2
+#include <Wire.h>
+#include <Zumo32U4.h>
 
 Zumo32U4Encoders encoders;
 Zumo32U4Motors motors;
@@ -18,15 +17,15 @@ Serial.begin(9600);
 
 void regneDistanse(){
     long countsLeft = encoders.getCountsLeft();
-    long countsRight = encoders.getCountsRight();
+    long countsRight = encoders.getCountsRight(); 
 
     long average = (countsLeft + countsRight)/2;
 
     float round = 75.81*12;
-    distanse =(((average)>0?(average):-(average))/round)*12.5221135;
+    distanse =(abs(average)/round)*12.5221135;
     lastAvrage = average;
 
-
+    
      static uint8_t lastDisplayTime;
   if ((uint8_t)(millis() - lastDisplayTime) >= 100){
     lastDisplayTime = millis();

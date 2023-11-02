@@ -1,6 +1,7 @@
 {
-    "board": "arduino:avr:uno",
+    "board": "pololu-a-star:avr:a-star32U4",
     "output": ".arduino/output",
-    "sketch": "Sensorkarusell/Sensorkarusell.ino",
-    "programmer": "avrisp"
+    "sketch": "Zumo/distanse/distanse.ino",
+    "programmer": "avrisp",
+    "port": "COM8"
 }
