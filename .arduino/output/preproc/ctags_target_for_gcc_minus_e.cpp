@@ -1,57 +1,106 @@
-# 1 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\distanse\\distanse.ino"
-# 2 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\distanse\\distanse.ino" 2
-# 3 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\distanse\\distanse.ino" 2
+# 1 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\followLine\\followLine.ino"
+# 2 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\followLine\\followLine.ino" 2
+# 3 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\followLine\\followLine.ino" 2
 
-Zumo32U4Encoders encoders;
+Zumo32U4LineSensors lineSensors;
 Zumo32U4Motors motors;
 Zumo32U4ButtonA buttonA;
-Zumo32U4ButtonC buttonC;
+Zumo32U4ButtonB buttonB;
 Zumo32U4OLED display;
-int16_t distanse = 0;
-int16_t lastAvrage = 0;
 
-void setup()
-{
-Serial.begin(9600);
+int16_t lasterror = 0;
+
+
+
+Zumo32U4Encoders encoders;
+int16_t previousCountLeft = 0;
+int16_t previousCountRight = 0;
+
+
+
+
+const uint16_t maxSpeed = 400;
+bool firstfault = true;
+
+const unsigned long interval = 2000;
+unsigned long previousMillis = 0;
+unsigned long currentMillis;
+
+unsigned int lineSensorValues[5];
+
+void setup(){
+    lineSensors.initFiveSensors();
+    buttonA.waitForButton();
+    calibrateLineSensors();
+    Serial.begin(9600);
 }
 
+void speedometer(){
+    static uint8_t lastDisplayTime;
+  static uint8_t displayErrorLeftCountdown = 0;
+  static uint8_t displayErrorRightCountdown = 0;
+  if ((uint8_t)(millis() - lastDisplayTime) >= 100)
+  {
+     lastDisplayTime = millis();
 
-void regneDistanse(){
-    long countsLeft = encoders.getCountsLeft();
-    long countsRight = encoders.getCountsRight();
+    int16_t countsLeft = encoders.getCountsLeft();
+    int16_t countsRight = encoders.getCountsRight();
 
-    long average = (countsLeft + countsRight)/2;
+    int16_t newCountLeft = countsLeft - previousCountLeft;
+    int16_t newCountRight = countsRight - previousCountRight;
+    int16_t avrage = (newCountLeft+newCountRight)/2;
+    float distanse = 75.81*12;
+    float meters = avrage/distanse*1.225221135;
 
-    float round = 75.81*12;
-    distanse =(((average)>0?(average):-(average))/round)*12.5221135;
-    lastAvrage = average;
-
-
-     static uint8_t lastDisplayTime;
-  if ((uint8_t)(millis() - lastDisplayTime) >= 100){
-    lastDisplayTime = millis();
     display.clear();
+    display.gotoXY(0,0);
+    display.print(meters);
     display.gotoXY(0,1);
-    display.print(distanse);
-    }
+    display.print("m/s");
+    previousCountLeft = countsLeft;
+    previousCountRight = countsRight;
+
+
+}
 }
 
-void loop()
-{
-    regneDistanse();
+void calibrateLineSensors(){
+     delay(1000);
+  for(uint16_t i = 0; i < 100; i++)
+  {
+    motors.setSpeeds(-200, 200);
+    lineSensors.calibrate();
+    }
 
-if (buttonA.isPressed())
-  {
-    motors.setSpeeds(400, 400);
-  }
-  else if (buttonC.isPressed())
-  {
-    motors.setSpeeds(-400, -400);
-  }
-  else
-  {
-    motors.setSpeeds(0, 0);
-  }
+  motors.setSpeeds(0, 0);
+  delay(2000);
+}
 
+
+void follow(){
+
+
+}
+
+void loop(){
+    speedometer();
+    int16_t position = lineSensors.readLine(lineSensorValues);
+    /*display.gotoXY(0,0);
+
+    display.print(position);*/
+    int16_t error = position - 2000;
+
+    int16_t speedifference = error/4 + 6*(error-lasterror);
+
+    lasterror = error;
+
+    int leftSpeed = (int16_t)maxSpeed + speedifference;
+    int rightSpeed = (int16_t)maxSpeed - speedifference;
+
+
+
+    leftSpeed = ((leftSpeed)<(0)?(0):((leftSpeed)>((int16_t)maxSpeed)?((int16_t)maxSpeed):(leftSpeed)));
+    rightSpeed = ((rightSpeed)<(0)?(0):((rightSpeed)>((int16_t)maxSpeed)?((int16_t)maxSpeed):(rightSpeed)));
+    motors.setSpeeds(leftSpeed,rightSpeed);
 
 }

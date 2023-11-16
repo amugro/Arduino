@@ -18,7 +18,7 @@ int16_t previousCountRight = 0;
 
 
 
-const uint16_t maxSpeed = 200;
+const uint16_t maxSpeed = 400;
 bool firstfault = true;
 
 const unsigned long interval = 2000;
@@ -52,7 +52,10 @@ void speedometer(){
     float meters = avrage/distanse*1.225221135;
     
     display.clear();
+    display.gotoXY(0,0);
     display.print(meters);
+    display.gotoXY(0,1);
+    display.print("m/s");
     previousCountLeft = countsLeft;
     previousCountRight = countsRight;
 
@@ -74,29 +77,25 @@ void calibrateLineSensors(){
 
 
 void follow(){
+  int16_t position = lineSensors.readLine(lineSensorValues);
+  int16_t error = position - 2000;
+    
+  int16_t speedifference = error/4 + 6*(error-lasterror);
 
+  lasterror = error;
+
+  int leftSpeed = (int16_t)maxSpeed + speedifference;
+  int rightSpeed = (int16_t)maxSpeed - speedifference;
+
+ 
+
+  leftSpeed = constrain(leftSpeed,0,(int16_t)maxSpeed);
+  rightSpeed = constrain(rightSpeed,0,(int16_t)maxSpeed);
+  motors.setSpeeds(leftSpeed,rightSpeed);
 
 }
 
 void loop(){
     speedometer();
-    int16_t position = lineSensors.readLine(lineSensorValues);
-    /*display.gotoXY(0,0);
-    display.print(position);*/
-
-    int16_t error = position - 2000;
-    
-    int16_t speedifference = error/4 + 6*(error-lasterror);
-
-    lasterror = error;
-
-    int leftSpeed = (int16_t)maxSpeed + speedifference;
-    int rightSpeed = (int16_t)maxSpeed - speedifference;
-
- 
-
-    leftSpeed = constrain(leftSpeed,0,(int16_t)maxSpeed);
-    rightSpeed = constrain(rightSpeed,0,(int16_t)maxSpeed);
-    motors.setSpeeds(leftSpeed,rightSpeed);
-
+    follow();
 }

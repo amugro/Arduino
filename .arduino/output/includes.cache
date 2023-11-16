@@ -10,47 +10,47 @@
     "Includepath": "C:\\Users\\amund\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\leonardo"
   },
   {
-    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\distanse.ino.cpp",
+    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\followLine.ino.cpp",
     "Include": "Wire.h",
     "Includepath": "C:\\Users\\amund\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\libraries\\Wire\\src"
   },
   {
-    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\distanse.ino.cpp",
+    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\followLine.ino.cpp",
     "Include": "Zumo32U4.h",
     "Includepath": "C:\\Users\\amund\\OneDrive\\Dokumenter\\Arduino\\libraries\\Zumo32U4\\src"
   },
   {
-    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\distanse.ino.cpp",
+    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\followLine.ino.cpp",
     "Include": "FastGPIO.h",
     "Includepath": "C:\\Users\\amund\\OneDrive\\Dokumenter\\Arduino\\libraries\\FastGPIO"
   },
   {
-    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\distanse.ino.cpp",
+    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\followLine.ino.cpp",
     "Include": "Pushbutton.h",
     "Includepath": "C:\\Users\\amund\\OneDrive\\Dokumenter\\Arduino\\libraries\\Pushbutton"
   },
   {
-    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\distanse.ino.cpp",
+    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\followLine.ino.cpp",
     "Include": "USBPause.h",
     "Includepath": "C:\\Users\\amund\\OneDrive\\Dokumenter\\Arduino\\libraries\\USBPause"
   },
   {
-    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\distanse.ino.cpp",
+    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\followLine.ino.cpp",
     "Include": "PololuBuzzer.h",
     "Includepath": "C:\\Users\\amund\\OneDrive\\Dokumenter\\Arduino\\libraries\\PololuBuzzer\\src"
   },
   {
-    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\distanse.ino.cpp",
+    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\followLine.ino.cpp",
     "Include": "PololuHD44780.h",
     "Includepath": "C:\\Users\\amund\\OneDrive\\Dokumenter\\Arduino\\libraries\\PololuHD44780"
   },
   {
-    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\distanse.ino.cpp",
+    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\followLine.ino.cpp",
     "Include": "PololuSH1106Main.h",
     "Includepath": "C:\\Users\\amund\\OneDrive\\Dokumenter\\Arduino\\libraries\\PololuOLED\\src"
   },
   {
-    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\distanse.ino.cpp",
+    "Sourcefile": "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\.arduino\\output\\sketch\\followLine.ino.cpp",
     "Include": "",
     "Includepath": null
   },

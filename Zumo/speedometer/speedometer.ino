@@ -21,7 +21,6 @@ char report[80];
 void loop()
 {
   static uint8_t lastDisplayTime;
-  static uint8_t OneSecond = 1000;
 
     long countsLeft = encoders.getCountsLeft();
     long countsRight = encoders.getCountsRight();
@@ -31,7 +30,7 @@ void loop()
     int16_t newCountRight = countsRight - previousCountRight;
     int16_t avrage = (newCountLeft+newCountRight)/2;
     float distanse = 75.81*12;
-    float oneRound = 12.25221135;
+    float oneRound = 122.5221135;
     float meters = avrage/distanse*oneRound;
     Serial.println(meters);
     previousCountLeft = countsLeft;

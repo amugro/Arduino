@@ -23,7 +23,6 @@ void regneDistanse(){
 
     float round = 75.81*12;
     distanse =(abs(average)/round)*12.5221135;
-    lastAvrage = average;
 
     
      static uint8_t lastDisplayTime;
