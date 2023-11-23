@@ -1,16 +1,15 @@
-
-#include <IRremote.h>
 #include <Wire.h>
 #include <Zumo32U4.h>
+#include <IRremote.h>
 
 /////////// NOTES ////////////
 /*
-- Add switchcase for display modes/ buzzer
-- Add switchcase in softwareBattery for special functions
-- Add lineFollower
-- Add switchcase in line follower for turning, job etc.
-- Add Random based taxi job
-- 
+- Add switchcase for display modes/ buzzer                              | DONE
+- Add switchcase in softwareBattery for special functions               |
+- Add lineFollower                                                      |
+- Add switchcase in line follower for turning, job etc.                 |
+- Add Random based taxi job                                             | DONE (might need adjustment in payment calculation and random(LOW,HIGH))
+- Fix speed and distance calculation. Use encoders.getCountsAndReset    |
 */
 
 Zumo32U4OLED display;
@@ -52,18 +51,20 @@ unsigned long refreshPreviousMillis = 0;
 long displayTime = 0;
 bool batteryDisplayed = false;
 
-
 // Variables for regneDistanse()
 long MeassureDistance = 0;
 
 // Variables for taxiDriver()
-bool passengerFound = false;
-long searchTime = 0;
-long missionStart = 0;
-int missionDistance = 0;
 int workCase = 0;
-int startDistance = 0;
-int passengerEntered = 0;
+bool passengerFound = false;
+bool onDuty = false;
+unsigned long searchTime = 0;
+unsigned long missionStart = 0;
+unsigned long missionDistance = 0;
+unsigned long startDistance = 0;
+unsigned long passengerEnteredMillis = 0;
+unsigned long previousWorkRequest = 0;
+const long freeTimeInterval = 15000;
 
 // Variables for followLine
 unsigned int lineSensorValues[5];
@@ -90,17 +91,16 @@ void setup(){
     display.print(F("to start"));
     buttonA.waitForButton();
     calibrateLineSensors();
-
-    IrReceiver.begin(RECV_PIN, ENABLE_LED_FEEDBACK);
     
+    IrReceiver.begin(RECV_PIN, ENABLE_LED_FEEDBACK);
 } // end setup
 
 void loop(){
-    IrRemote();
-    SpeedometerAndMeassureDistance();
-    followLine();    
     softwareBattery();
     showBatteryStatus();
+    SpeedometerAndMeassureDistance();
+    followLine();
+    taxiDriver();
 } // end loop
 
 void IrRemote(){
@@ -130,8 +130,7 @@ void SpeedometerAndMeassureDistance(){
 
       } // end if
       Serial.println(MeassureDistance);
-}
-
+}// end voud SpeedometerAndMeassureDistance
 
 void softwareBattery(){
     long currentMillis = millis();
@@ -159,7 +158,7 @@ void carNeedCharging(){
 } // end void
 
 void hiddenFeature(){
-    //int8_t averageSpeed = speedometer();
+    int8_t averageSpeed = iAmSpeed;
     int8_t distanceChange = MeassureDistance - lastDistance;
 
 
@@ -176,7 +175,7 @@ void hiddenFeature(){
       
         lastDistance = MeassureDistance;
 
-        consumptionMeasure += (iAmSpeed / distanceChange); // EKSEMPEL PÅ FUNKSJON, OPPDATER NÅR VI TESTER MED DATA
+        consumptionMeasure += (averageSpeed / distanceChange); // EKSEMPEL PÅ FUNKSJON, OPPDATER NÅR VI TESTER MED DATA
 
         if (consumptionMeasure <= -10){
             if ((emergencyChargeMode == true) && (emergencyChargingUsed = false)){
@@ -285,18 +284,63 @@ void showBatteryStatus(){
 
 }//end void showBatteryStatus
 
-void searchForPassenger(){
+void taxiDriver(){
+    unsigned long currentMillis = millis();
 
-    int currentMillis = millis();
-
-    if (passengerFound = false){
-        searchTime = random(1000, 5000);
-        passengerFound = true;
+    if (onDuty == false){
+        if (currentMillis - previousWorkRequest > freeTimeInterval){
+            motors.setSpeeds(0,0);
+            display.clear();
+            display.setLayout21x8();
+            display.print(F("Want to work?"));
+            display.gotoXY(0,3);
+            display.print(F("Button A = Yes"));
+            display.gotoXY(0,5);
+            display.print(F("Button B = No"));
+            while ((buttonA.isPressed() == 0) and (buttonB.isPressed() == 0)){
+            } // end while
+            if (buttonA.isPressed() == 1){
+                delay(500);
+                workCase = 1;
+                onDuty = true;
+            } // end if
+            else if (buttonB.isPressed() == 1){
+                delay(500);
+                workCase = 0;
+                onDuty = false;
+            } // end else if
+            previousWorkRequest = currentMillis;
+        } // end if
     } // end if
     
-    else if (passengerFound == true){
-        if (currentMillis - missionStart > searchTime){
-            missionDistance = random(100,300);
+    switch (workCase)
+    {
+    case 1:
+        searchForPassenger();
+        break;
+    case 2:
+        drivePassenger();
+        break;
+    default:
+        break;
+    } // end case
+    
+} // end void
+
+void searchForPassenger(){
+    unsigned long currentMillis = millis();
+
+    if (passengerFound == false){
+        searchTime = random(3000, 8000);
+        passengerFound = true;
+        missionStart = currentMillis;
+    } // end if
+    
+    if (passengerFound == true){
+        if (currentMillis - missionStart >= searchTime){
+            passengerFound = false;
+
+            missionDistance = random(200,400);
             motors.setSpeeds(0,0);
             display.clear();
             display.setLayout21x8();
@@ -318,17 +362,20 @@ void searchForPassenger(){
             while ((buttonA.isPressed() == 0) and (buttonB.isPressed() == 0) and buttonC.isPressed() == 0){
             } // end while
             if (buttonA.isPressed() == 1){
-                passengerEntered = currentMillis;
+                delay(500);
                 startDistance = MeassureDistance;
+                passengerEnteredMillis = currentMillis;
                 workCase = 2;
-                passengerFound = true;
             } // end if
 
             else if (buttonB.isPressed() == 1){
+                delay(500);
                 workCase = 1;
             } // end if
 
             else if (buttonC.isPressed() == 1){
+                delay(500);
+                onDuty = false;
                 workCase = 0;
             } // end if     
         } // end if
@@ -336,14 +383,14 @@ void searchForPassenger(){
 } // end void
 
 void drivePassenger(){
-    int currentMillis = millis();
-    if (MeassureDistance - startDistance > missionDistance){
+    unsigned long currentMillis = millis();
+    if (MeassureDistance - startDistance >= missionDistance){
         motors.setSpeeds(0,0);
-        int payment = (missionDistance / (currentMillis - missionStart)) * 1000;
+        unsigned long payment = ((missionDistance * 2000) / (currentMillis - passengerEnteredMillis));
         bankAccount +=  payment;
         display.clear();
         display.setLayout21x8();
-        display.print(F("Passanger delivered"));
+        display.print(F("Passenger delivered"));
         display.gotoXY(0,2);
         display.print(F("Payment:"));
         display.gotoXY(13,2);
@@ -359,26 +406,15 @@ void drivePassenger(){
         while ((buttonA.isPressed() == 0) and (buttonB.isPressed() == 0)){
         } // end while
         if (buttonA.isPressed() == 1){
+            delay(500);
             workCase = 1;
         } // end if
         else if (buttonB.isPressed() == 1){
+            delay(500);
             workCase = 0;
+            onDuty = false;
         } // end if
     } // end if
-} // end void
-
-void taxiDriver(){
-    switch (workCase)
-    {
-    case 1:
-        searchForPassenger();
-        break;
-    case 2:
-        drivePassenger();
-        break;
-    default:
-        break;
-    } 
 } // end void
 
 void followLine(){
@@ -399,11 +435,7 @@ void followLine(){
 
     leftSpeed = constrain(leftSpeed,0,(int16_t)maxSpeed);
     rightSpeed = constrain(rightSpeed,0,(int16_t)maxSpeed);
-    if(batteryLevel > 0){
     motors.setSpeeds(leftSpeed,rightSpeed);
-    }else{
-    motors.setSpeeds(0,0);
-    }
 } // end void
 
 void calibrateLineSensors(){
@@ -417,13 +449,3 @@ void calibrateLineSensors(){
   motors.setSpeeds(0, 0);
   delay(2000);
 }
-
-void calculateAverage(){
-    int currentMillis = millis();
-    int interval = 60000;
-    uint8_t previousMillis;
-    if(currentMillis - previousMillis > interval){
-        
-    }
-
-}// end void calculateAverage
