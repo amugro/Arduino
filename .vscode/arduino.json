@@ -1,7 +1,7 @@
 {
     "board": "pololu-a-star:avr:a-star32U4",
     "output": ".arduino/output",
-    "sketch": "Zumo/followLine/followLine.ino",
+    "sketch": "Zumo/softwarebattery/softwarebattery.ino",
     "programmer": "avrisp",
     "port": "COM8"
 }
