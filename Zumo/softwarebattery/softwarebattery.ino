@@ -52,14 +52,9 @@ unsigned long refreshPreviousMillis = 0;
 long displayTime = 0;
 bool batteryDisplayed = false;
 
-// Variables for speedometer
-int16_t previousCountLeft = 0;
-int16_t previousCountRight = 0;
 
 // Variables for regneDistanse()
-int16_t lastAverage = 0;
-long distance = 0;
-unsigned long distanceMillis = 0;
+long MeassureDistance = 0;
 
 // Variables for taxiDriver()
 bool passengerFound = false;
@@ -102,8 +97,7 @@ void setup(){
 
 void loop(){
     IrRemote();
-    meassureDistance();
-    speedometer();
+    SpeedometerAndMeassureDistance();
     followLine();    
     softwareBattery();
     showBatteryStatus();
@@ -119,48 +113,24 @@ void IrRemote(){
 IrReceiver.resume();
 }
 
-float speedometer(){
-    static uint8_t lastDisplayTime;
-
-    long countsLeft = encoders.getCountsLeft();
-    long countsRight = encoders.getCountsRight();
-    if ((uint8_t)(millis() - lastDisplayTime) >= 100)
+void SpeedometerAndMeassureDistance(){
+  static uint8_t lastDisplayTime;
+    if ((uint8_t)(millis() - lastDisplayTime) >= 200)
     {
-        int16_t newCountLeft = countsLeft - previousCountLeft;
-        int16_t newCountRight = countsRight - previousCountRight;
-        int16_t avrage = (newCountLeft+newCountRight)/2;
-        float distanse = 75.81*12;
-        float oneRound = 122.5221135;
-        float meters = avrage/distanse*oneRound;
-        //Serial.println(meters);
-        previousCountLeft = countsLeft;
-        previousCountRight = countsRight;
-        //display.clear();
-        //display.print(meters);
-        lastDisplayTime = millis();
-        iAmSpeed = meters;
-        return meters;
-    } // end if
-} // end void
-
-void meassureDistance(){
-    int currentMillis = millis();
-
-    if (currentMillis - distanceMillis > 100){
-        // Millis funksjon
-        long countsLeft = encoders.getCountsLeft();     // Get amount of encoder readings
-        long countsRight = encoders.getCountsRight();   
-
-        long average = (countsLeft + countsRight)/2;    // Uses the average of the encoder readings
-
-        float round = 75.81*12;                         // Calculation of wheelrotation
-        int diffAverage = abs(average-lastAverage);     // use the absolute value to count distance both forward and backward
-        distance += (diffAverage/round)*12.5221135;
+        long countsLeft = encoders.getCountsAndResetLeft();
+        long countsRight = encoders.getCountsAndResetRight();
+        float avrage = (countsLeft+countsRight)/2;
+        float distance = 75.81*12;
+        float oneRound = 12.25221135;
         
-        lastAverage = average;                          // Make current readings as reffrence for next run's calculations
-        distanceMillis = currentMillis;
-    } // end if
-} // end void
+        float meters = avrage/distance*oneRound*5;
+        iAmSpeed = meters;
+        MeassureDistance +=abs(meters)*0.2;
+        lastDisplayTime = millis();
+
+      } // end if
+      Serial.println(MeassureDistance);
+}
 
 
 void softwareBattery(){
@@ -189,8 +159,8 @@ void carNeedCharging(){
 } // end void
 
 void hiddenFeature(){
-    int8_t averageSpeed = speedometer();
-    int8_t distanceChange = distance - lastDistance;
+    //int8_t averageSpeed = speedometer();
+    int8_t distanceChange = MeassureDistance - lastDistance;
 
 
 
@@ -204,9 +174,9 @@ void hiddenFeature(){
 
     if (hiddenActivated == true){ // FINN PÅ NOE SOM SKAL AKTIVERE FUNSKJONEN
       
-        lastDistance = distance;
+        lastDistance = MeassureDistance;
 
-        consumptionMeasure += (averageSpeed / distanceChange); // EKSEMPEL PÅ FUNKSJON, OPPDATER NÅR VI TESTER MED DATA
+        consumptionMeasure += (iAmSpeed / distanceChange); // EKSEMPEL PÅ FUNKSJON, OPPDATER NÅR VI TESTER MED DATA
 
         if (consumptionMeasure <= -10){
             if ((emergencyChargeMode == true) && (emergencyChargingUsed = false)){
@@ -278,7 +248,7 @@ void showBatteryStatus(){
             display.gotoXY(0,2);
             display.print(F("Distance:"));
             display.gotoXY(0,3);
-            display.print(distance);
+            display.print(MeassureDistance);
             display.gotoXY(7,3);
             display.print(F("cm"));
             refreshPreviousMillis = currentMillis;
@@ -349,7 +319,7 @@ void searchForPassenger(){
             } // end while
             if (buttonA.isPressed() == 1){
                 passengerEntered = currentMillis;
-                startDistance = distance;
+                startDistance = MeassureDistance;
                 workCase = 2;
                 passengerFound = true;
             } // end if
@@ -367,7 +337,7 @@ void searchForPassenger(){
 
 void drivePassenger(){
     int currentMillis = millis();
-    if (distance - startDistance > missionDistance){
+    if (MeassureDistance - startDistance > missionDistance){
         motors.setSpeeds(0,0);
         int payment = (missionDistance / (currentMillis - missionStart)) * 1000;
         bankAccount +=  payment;

@@ -3,5 +3,5 @@
     "output": ".arduino/output",
     "sketch": "Zumo/softwarebattery/softwarebattery.ino",
     "programmer": "avrisp",
-    "port": "COM8"
+    "port": "COM3"
 }

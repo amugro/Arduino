@@ -60,14 +60,9 @@ unsigned long refreshPreviousMillis = 0;
 long displayTime = 0;
 bool batteryDisplayed = false;
 
-// Variables for speedometer
-int16_t previousCountLeft = 0;
-int16_t previousCountRight = 0;
 
 // Variables for regneDistanse()
-int16_t lastAverage = 0;
-long distance = 0;
-unsigned long distanceMillis = 0;
+long MeassureDistance = 0;
 
 // Variables for taxiDriver()
 bool passengerFound = false;
@@ -99,23 +94,23 @@ void setup(){
     // Wait for button A to be pressed and released.
     display.clear();
     display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 93 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 88 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                  (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 93 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 88 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                  "Press A"
-# 93 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 88 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                  ); &__c[0];}))
-# 93 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 88 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                  )));
     display.gotoXY(0, 1);
     display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 95 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 90 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                  (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 95 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 90 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                  "to start"
-# 95 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 90 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                  ); &__c[0];}))
-# 95 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 90 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                  )));
     buttonA.waitForButton();
     calibrateLineSensors();
@@ -126,8 +121,7 @@ void setup(){
 
 void loop(){
     IrRemote();
-    meassureDistance();
-    speedometer();
+    SpeedometerAndMeassureDistance();
     followLine();
     softwareBattery();
     showBatteryStatus();
@@ -143,48 +137,24 @@ void IrRemote(){
 IrReceiver.resume();
 }
 
-float speedometer(){
-    static uint8_t lastDisplayTime;
-
-    long countsLeft = encoders.getCountsLeft();
-    long countsRight = encoders.getCountsRight();
-    if ((uint8_t)(millis() - lastDisplayTime) >= 100)
+void SpeedometerAndMeassureDistance(){
+  static uint8_t lastDisplayTime;
+    if ((uint8_t)(millis() - lastDisplayTime) >= 200)
     {
-        int16_t newCountLeft = countsLeft - previousCountLeft;
-        int16_t newCountRight = countsRight - previousCountRight;
-        int16_t avrage = (newCountLeft+newCountRight)/2;
-        float distanse = 75.81*12;
-        float oneRound = 122.5221135;
-        float meters = avrage/distanse*oneRound;
-        //Serial.println(meters);
-        previousCountLeft = countsLeft;
-        previousCountRight = countsRight;
-        //display.clear();
-        //display.print(meters);
-        lastDisplayTime = millis();
+        long countsLeft = encoders.getCountsAndResetLeft();
+        long countsRight = encoders.getCountsAndResetRight();
+        float avrage = (countsLeft+countsRight)/2;
+        float distance = 75.81*12;
+        float oneRound = 12.25221135;
+
+        float meters = avrage/distance*oneRound*5;
         iAmSpeed = meters;
-        return meters;
-    } // end if
-} // end void
+        MeassureDistance +=((meters)>0?(meters):-(meters))*0.2;
+        lastDisplayTime = millis();
 
-void meassureDistance(){
-    int currentMillis = millis();
-
-    if (currentMillis - distanceMillis > 100){
-        // Millis funksjon
-        long countsLeft = encoders.getCountsLeft(); // Get amount of encoder readings
-        long countsRight = encoders.getCountsRight();
-
-        long average = (countsLeft + countsRight)/2; // Uses the average of the encoder readings
-
-        float round = 75.81*12; // Calculation of wheelrotation
-        int diffAverage = ((average-lastAverage)>0?(average-lastAverage):-(average-lastAverage)); // use the absolute value to count distance both forward and backward
-        distance += (diffAverage/round)*12.5221135;
-
-        lastAverage = average; // Make current readings as reffrence for next run's calculations
-        distanceMillis = currentMillis;
-    } // end if
-} // end void
+      } // end if
+      Serial.println(MeassureDistance);
+}
 
 
 void softwareBattery(){
@@ -213,8 +183,8 @@ void carNeedCharging(){
 } // end void
 
 void hiddenFeature(){
-    int8_t averageSpeed = speedometer();
-    int8_t distanceChange = distance - lastDistance;
+    //int8_t averageSpeed = speedometer();
+    int8_t distanceChange = MeassureDistance - lastDistance;
 
 
 
@@ -228,9 +198,9 @@ void hiddenFeature(){
 
     if (hiddenActivated == true){ // FINN PÅ NOE SOM SKAL AKTIVERE FUNSKJONEN
 
-        lastDistance = distance;
+        lastDistance = MeassureDistance;
 
-        consumptionMeasure += (averageSpeed / distanceChange); // EKSEMPEL PÅ FUNKSJON, OPPDATER NÅR VI TESTER MED DATA
+        consumptionMeasure += (iAmSpeed / distanceChange); // EKSEMPEL PÅ FUNKSJON, OPPDATER NÅR VI TESTER MED DATA
 
         if (consumptionMeasure <= -10){
             if ((emergencyChargeMode == true) && (emergencyChargingUsed = false)){
@@ -295,47 +265,47 @@ void showBatteryStatus(){
             display.clear();
             display.setLayout11x4(); // Divide screen into 11 columns and 4 rows
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 273 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 243 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 273 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 243 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "Speed:"
-# 273 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 243 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 273 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 243 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             display.gotoXY(0,1);
             display.print(iAmSpeed);
             display.gotoXY(7,1);
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 277 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 247 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 277 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 247 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "m/s"
-# 277 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 247 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 277 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 247 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             display.gotoXY(0,2);
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 279 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 249 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 279 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 249 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "Distance:"
-# 279 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 249 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 279 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 249 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             display.gotoXY(0,3);
-            display.print(distance);
+            display.print(MeassureDistance);
             display.gotoXY(7,3);
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 283 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 253 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 283 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 253 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "cm"
-# 283 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 253 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 283 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 253 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             refreshPreviousMillis = currentMillis;
         } // end if
@@ -346,37 +316,37 @@ void showBatteryStatus(){
         display.clear();
         display.setLayout21x8(); // Divide screen into 21 columns and 8 rows
         display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 292 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 262 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 292 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 262 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      "Battery level"
-# 292 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 262 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      ); &__c[0];}))
-# 292 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 262 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      )));
         display.gotoXY(15,0);
         display.print(batteryLevel);
         display.gotoXY(0,2);
         display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 296 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 266 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 296 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 266 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      "Times Charged"
-# 296 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 266 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      ); &__c[0];}))
-# 296 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 266 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      )));
         display.gotoXY(15,2);
         display.print(timesCharged);
         display.gotoXY(0,4);
         display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 300 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 270 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 300 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 270 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      "Battery Health"
-# 300 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 270 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      ); &__c[0];}))
-# 300 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 270 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      )));
         display.gotoXY(15,4);
         display.print(batteryHealth);
@@ -411,81 +381,81 @@ void searchForPassenger(){
             display.clear();
             display.setLayout21x8();
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 333 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 303 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 333 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 303 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "The passenger want to travel"
-# 333 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 303 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 333 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 303 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             display.gotoXY(0,1);
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 335 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 305 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 335 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 305 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "travel for"
-# 335 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 305 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 335 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 305 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             display.gotoXY(12,1);
             display.print(missionDistance);
             display.gotoXY(18,1);
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 339 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 309 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 339 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 309 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "cm"
-# 339 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 309 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 339 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 309 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             display.gotoXY(0,3);
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 341 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 311 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 341 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 311 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "Do you take the job?"
-# 341 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 311 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 341 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 311 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             display.gotoXY(0,4);
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 343 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 313 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 343 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 313 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "A = YES"
-# 343 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 313 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 343 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 313 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             display.gotoXY(15,4);
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 345 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 315 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 345 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 315 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "B = NO"
-# 345 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 315 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 345 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 315 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             display.gotoXY(0,5);
             display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 347 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 317 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 347 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 317 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          "C = Off duty"
-# 347 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 317 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                          ); &__c[0];}))
-# 347 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 317 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                          )));
             while ((buttonA.isPressed() == 0) and (buttonB.isPressed() == 0) and buttonC.isPressed() == 0){
             } // end while
             if (buttonA.isPressed() == 1){
                 passengerEntered = currentMillis;
-                startDistance = distance;
+                startDistance = MeassureDistance;
                 workCase = 2;
                 passengerFound = true;
             } // end if
@@ -503,72 +473,72 @@ void searchForPassenger(){
 
 void drivePassenger(){
     int currentMillis = millis();
-    if (distance - startDistance > missionDistance){
+    if (MeassureDistance - startDistance > missionDistance){
         motors.setSpeeds(0,0);
         int payment = (missionDistance / (currentMillis - missionStart)) * 1000;
         bankAccount += payment;
         display.clear();
         display.setLayout21x8();
         display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 376 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 346 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 376 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 346 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      "Passanger delivered"
-# 376 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 346 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      ); &__c[0];}))
-# 376 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 346 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      )));
         display.gotoXY(0,2);
         display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 378 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 348 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 378 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 348 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      "Payment:"
-# 378 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 348 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      ); &__c[0];}))
-# 378 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 348 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      )));
         display.gotoXY(13,2);
         display.print(payment);
         display.gotoXY(18,2);
         display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 382 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 352 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 382 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 352 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      "kr"
-# 382 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 352 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      ); &__c[0];}))
-# 382 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 352 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      )));
         display.gotoXY(0,4);
         display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 384 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 354 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 384 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 354 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      "Continue Working?"
-# 384 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 354 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      ); &__c[0];}))
-# 384 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 354 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      )));
         display.gotoXY(0,5);
         display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 386 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 356 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 386 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 356 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      "A = Search for client"
-# 386 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 356 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      ); &__c[0];}))
-# 386 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 356 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      )));
         display.gotoXY(0,6);
         display.print((reinterpret_cast<const __FlashStringHelper *>(
-# 388 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 358 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      (__extension__({static const char __c[] __attribute__((__progmem__)) = (
-# 388 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 358 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      "B = End work"
-# 388 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
+# 358 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino" 3
                      ); &__c[0];}))
-# 388 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
+# 358 "C:\\Users\\amund\\OneDrive\\Dokumenter\\IELS 1001\\Arduino\\Zumo\\softwarebattery\\softwarebattery.ino"
                      )));
         while ((buttonA.isPressed() == 0) and (buttonB.isPressed() == 0)){
         } // end while
