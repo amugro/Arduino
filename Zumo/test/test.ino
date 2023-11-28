@@ -6,10 +6,12 @@
 /*
 - Add switchcase for display modes/ buzzer                              | DONE
 - Add switchcase in softwareBattery for special functions               |
-- Add lineFollower                                                      |
-- Add switchcase in line follower for turning, job etc.with IR remote   | 
+- Add lineFollower                                                      | DONE
+- Add switchcase in line follower for turning, job etc.                 |
 - Add Random based taxi job                                             | DONE (might need adjustment in payment calculation and random(LOW,HIGH))
-- Fix speed and distance calculation. Use encoders.getCountsAndReset    | DONE
+- Fix speed and distance calculation. Use encoders.getCountsAndReset    |
+- Add function to activate / deactivate hiddenfeature                   | DONE
+- Add function to activate emergency charging                           | Skal vi bare aktivere den med tastetrykk på fjernkontrollen?
 */
 
 Zumo32U4OLED display;
@@ -20,6 +22,14 @@ Zumo32U4ButtonA buttonA;
 Zumo32U4ButtonB buttonB;
 Zumo32U4ButtonC buttonC;
 Zumo32U4LineSensors lineSensors;
+Zumo32U4IMU imu;
+
+// Variables for softwareBattery
+int8_t batteryLevel = 100;
+long lastDistance = 0;
+float consumptionMeasure = 0;
+int8_t timesCharged = 0;
+unsigned long batteryMillis = 0;
 
 //variables for IR remote
 #define code1 3910598400
@@ -33,23 +43,21 @@ unsigned long considerTime;
 unsigned long irNum;
 /////////////////////////////
 
-// Variables for softwareBattery
-int8_t batteryLevel = 100;
-long lastDistance = 0;
-float consumptionMeasure = 0;
-int8_t timesCharged = 0;
-unsigned long batteryMillis = 0;
-
 // Variables for hiddenFeature()
 bool hiddenActivated = false;
 bool emergencyChargingUsed = false;
 bool emergencyChargeMode = false;
+bool countDownStarted = false;
+unsigned long countDownStart = 0;
+const long countDownInterval = 15000;
 
 // Variables for showBatteryStatus()
 unsigned long previousMillis = 0;
 unsigned long refreshPreviousMillis = 0;
 long displayTime = 0;
 bool batteryDisplayed = false;
+
+
 
 // Variables for regneDistanse()
 long MeassureDistance = 0;
@@ -71,12 +79,15 @@ unsigned int lineSensorValues[5];
 int16_t lastError = 0;
 const uint16_t maxSpeed = 200;
 
+// Variables for charging
+int missingAmount = 0;
+int account = 100;
+int debit = 0;
 
 
 ///////// TEST VARIABLES ////
 int batteryHealth = 2;
 float iAmSpeed = 0;
-int bankAccount = 100;
 
 
 
@@ -91,8 +102,10 @@ void setup(){
     display.print(F("to start"));
     buttonA.waitForButton();
     calibrateLineSensors();
-    
+
     IrReceiver.begin(RECV_PIN, ENABLE_LED_FEEDBACK);
+
+    
 } // end setup
 
 void loop(){
@@ -132,6 +145,8 @@ void SpeedometerAndMeassureDistance(){
       Serial.println(MeassureDistance);
 }// end voud SpeedometerAndMeassureDistance
 
+
+
 void softwareBattery(){
     long currentMillis = millis();
 
@@ -147,25 +162,32 @@ void softwareBattery(){
     } // end if
 } // end void
 
-void carNeedCharging(){
-    if (batteryLevel < 10){ // Gir forvarsel med Lyd, lys og display
-
-    } // end if
-
-    if (batteryLevel < 5){ // Stopper hvert 15 sekund og piper
-
-    } // end if
-} // end void
-
 void hiddenFeature(){
+    int currentMillis = millis();
+
     int8_t averageSpeed = iAmSpeed;
     int8_t distanceChange = MeassureDistance - lastDistance;
 
 
 
     // Function to turn on hiddenActivated
+    if (imu.g.z > 5000){
+        for (int i = 0; i < 10000; i++){
+            if (imu.g.z < -5000){
+                hiddenActivated = true;
+            } // end if
+        } // end for
+    } // end if
 
-    // Function to turn of hiddenActivated
+    // Function to turn off hiddenActivated
+    if ((hiddenActivated == true) && (countDownStarted == false)){
+        countDownStart = currentMillis;
+        countDownStarted = true;
+    } // end if
+
+    if (currentMillis - countDownStart > countDownInterval){
+        hiddenActivated = false;
+    } // end if
 
     // Function to turn on emergencyChargingMode
     
@@ -387,7 +409,7 @@ void drivePassenger(){
     if (MeassureDistance - startDistance >= missionDistance){
         motors.setSpeeds(0,0);
         unsigned long payment = ((missionDistance * 2000) / (currentMillis - passengerEnteredMillis));
-        bankAccount +=  payment;
+        account +=  payment;
         display.clear();
         display.setLayout21x8();
         display.print(F("Passenger delivered"));
@@ -449,3 +471,150 @@ void calibrateLineSensors(){
   motors.setSpeeds(0, 0);
   delay(2000);
 }
+
+void chargingMode(){
+    unsigned long currentMillis = millis();
+    if ((debit >= 0) && (account >= debit)){
+        account = account - debit;
+        debit = 0;
+        display.clear();
+        display.print("Debit account cleared");
+    } // end if
+
+    if ((currentMillis % 10) == 0){                           // Just a idea, test for reliability
+    display.clear();
+    display.print(F("Charging mode activated"));
+    display.gotoXY(0,2);
+    display.print(F("A = add 10%"));
+    display.gotoXY(0,3);
+    display.print(F("B = add 50%"));
+    display.gotoXY(0,4);
+    display.print(F("C = Fully Charged"));
+    display.gotoXY(0,6);
+    display.print(F("Bank account = "));
+    display.gotoXY(15, 6);
+    display.print(account);
+    display.gotoXY(0, 7);
+    display.print(F("Debit account = "));
+    display.gotoXY(15, 7);
+    display.print(debit);
+    } // end if
+
+    if (buttonA.isPressed() == 1){
+        if (account >= 10){
+            account -= 10;
+            batteryLevel += 10;
+            display.clear();
+            display.print(F("Wait one second while charging"));
+            delay(1000);
+        } // end if
+        
+        else{
+            missingAmount = 10 - account;
+            display.clear();
+            display.setLayout21x8();
+            display.print(F("You are missing"));
+            display.gotoXY(15, 0);
+            display.print(missingAmount);
+            display.gotoXY(18, 0);
+            display.print(F("kr"));
+            display.gotoXY(0, 1);
+            display.print(F("Do you want to charge on debit?"));
+            display.gotoXY(0,2);
+            display.print(F("A = Yes"));
+            display.gotoXY(12,2);
+            display.print(F("B = Cancel"));
+
+            while ((buttonA.isPressed() == 0) and (buttonB.isPressed() == 0)){
+            } // end while
+            if (buttonA.isPressed() == 1){
+                debit += missingAmount;
+                account = 0;
+                chargingMode();
+            } // end if
+
+            if (buttonB.isPressed() == 1){
+                // QUIT CHARGING MODE, Integrate with driving switch case?
+            } // end if
+        } // end else
+    } // end if
+
+    if (buttonB.isPressed() == 1){
+        if (account >= 50){
+            account -= 50;
+            batteryLevel += 50;
+            display.clear();
+            display.print(F("Wait five second while charging"));
+            delay(5000);
+        } // end if
+        
+        else{
+            missingAmount = 50 - account;
+            display.clear();
+            display.setLayout21x8();
+            display.print(F("You are missing"));
+            display.gotoXY(15, 0);
+            display.print(missingAmount);
+            display.gotoXY(18, 0);
+            display.print(F("kr"));
+            display.gotoXY(0, 1);
+            display.print(F("Do you want to charge on debit?"));
+            display.gotoXY(0,2);
+            display.print(F("A = Yes"));
+            display.gotoXY(12,2);
+            display.print(F("B = Cancel"));
+
+            while ((buttonA.isPressed() == 0) and (buttonB.isPressed() == 0)){
+            } // end while
+            if (buttonA.isPressed() == 1){
+                debit += missingAmount;
+                account = 0;
+                chargingMode();
+            } // end if
+
+            if (buttonB.isPressed() == 1){
+                // QUIT CHARGING MODE, Integrate with driving switch case?
+            } // end if
+        } // end else
+    } // end if
+
+    if (buttonC.isPressed() == 1){
+        int percentageUntilFull = (100 - batteryLevel);
+        if (account >= (percentageUntilFull)){
+            account -= percentageUntilFull;
+            batteryLevel += percentageUntilFull;
+            display.clear();
+            display.print(F("Wait ten second while charging"));
+            delay(10000);
+        } // end if
+        
+        else{
+            missingAmount = percentageUntilFull - account;
+            display.clear();
+            display.setLayout21x8();
+            display.print(F("You are missing"));
+            display.gotoXY(15, 0);
+            display.print(missingAmount);
+            display.gotoXY(18, 0);
+            display.print(F("kr"));
+            display.gotoXY(0, 1);
+            display.print(F("Do you want to charge on debit?"));
+            display.gotoXY(0,2);
+            display.print(F("A = Yes"));
+            display.gotoXY(12,2);
+            display.print(F("B = Cancel"));
+
+            while ((buttonA.isPressed() == 0) and (buttonB.isPressed() == 0)){
+            } // end while
+            if (buttonA.isPressed() == 1){
+                debit += missingAmount;
+                account = 0;
+                chargingMode();
+            } // end if
+
+            if (buttonB.isPressed() == 1){
+                // QUIT CHARGING MODE, Integrate with driving switch case?
+            } // end if
+        } // end else
+    } // end if
+} // end void
